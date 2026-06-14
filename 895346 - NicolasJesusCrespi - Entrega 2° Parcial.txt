@@ -154,42 +154,58 @@ class Program
         Encabezado();
         Console.WriteLine("-- NUEVO POST --\n");
 
-        Console.Write("Título: ");
-        string titulo = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(titulo))
+        string titulo;
+        do
         {
-            Console.WriteLine("El título no puede estar vacío.");
-            Pausar();
-            return;
-        }
+            Console.Write("Título: ");
+            titulo = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(titulo))
+                Console.WriteLine("El título no puede estar vacío. Ingreselo nuevamente.");
+        } while (string.IsNullOrWhiteSpace(titulo));
 
         List<Categoria> opciones = categoriasPermitidas ?? Enum.GetValues(typeof(Categoria)).Cast<Categoria>().ToList();
-        Console.WriteLine("Categoría:");
-        for (int i = 0; i < opciones.Count; i++)
-            Console.WriteLine($"  {i + 1}. {NombreCategoria(opciones[i])}");
-        Console.Write("Opción: ");
-
-        if (!int.TryParse(Console.ReadLine(), out int catIdx) || catIdx < 1 || catIdx > opciones.Count)
+        int catIdx;
+        do
         {
-            Console.WriteLine("Categoría inválida.");
-            Pausar();
-            return;
-        }
+            Console.WriteLine("Categoría:");
+            for (int i = 0; i < opciones.Count; i++)
+                Console.WriteLine($"  {i + 1}. {NombreCategoria(opciones[i])}");
+            Console.Write("Opción: ");
+        } while (!int.TryParse(Console.ReadLine(), out catIdx) || catIdx < 1 || catIdx > opciones.Count);
         Categoria categoria = opciones[catIdx - 1];
 
-        Console.Write("Contenido: ");
-        string contenido = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(contenido))
+        string contenido;
+        do
         {
-            Console.WriteLine("El contenido no puede estar vacío.");
-            Pausar();
-            return;
-        }
+            Console.Write("Contenido: ");
+            contenido = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(contenido))
+                Console.WriteLine("El contenido no puede estar vacío. Ingreselo nuevamente.");
+        } while (string.IsNullOrWhiteSpace(contenido));
 
         Post nuevo = new Post(nextId++, titulo, categoria, contenido);
         posts.Add(nuevo);
         Console.WriteLine($"\nPost #{nuevo.Id} creado exitosamente en estado Borrador.");
         Pausar();
+    }
+
+    static Post SeleccionarPost(List<Post> lista)
+    {
+        Post post = null;
+        do
+        {
+            Console.Write("Ingrese ID del post: ");
+            string input = Console.ReadLine();
+            if (!int.TryParse(input, out int id))
+            {
+                Console.WriteLine("ID inválido, ingreselo nuevamente.");
+                continue;
+            }
+            post = lista.FirstOrDefault(p => p.Id == id);
+            if (post == null)
+                Console.WriteLine("Post no encontrado, ingreselo nuevamente.");
+        } while (post == null);
+        return post;
     }
 
     static void EditarPost(List<Categoria> categoriasPermitidas)
@@ -209,22 +225,7 @@ class Program
 
         Console.WriteLine("-- EDITAR POST --\n");
         MostrarLista(editables);
-        Console.Write("Ingrese ID del post a editar: ");
-
-        if (!int.TryParse(Console.ReadLine(), out int id))
-        {
-            Console.WriteLine("ID inválido.");
-            Pausar();
-            return;
-        }
-
-        Post post = editables.FirstOrDefault(p => p.Id == id);
-        if (post == null)
-        {
-            Console.WriteLine("Post no encontrado o sin permiso.");
-            Pausar();
-            return;
-        }
+        Post post = SeleccionarPost(editables);
 
         Console.WriteLine($"\nTítulo actual: {post.Titulo}");
         Console.Write("Nuevo título (Enter para no cambiar): ");
@@ -232,19 +233,23 @@ class Program
         if (!string.IsNullOrWhiteSpace(nuevoTitulo))
             post.Titulo = nuevoTitulo;
 
-        Console.WriteLine($"Categoría actual: {NombreCategoria(post.Categoria)}");
         List<Categoria> opcionesEdit = categoriasPermitidas ?? Enum.GetValues(typeof(Categoria)).Cast<Categoria>().ToList();
+        Console.WriteLine($"Categoría actual: {NombreCategoria(post.Categoria)}");
         Console.WriteLine("Nueva categoría (Enter para no cambiar):");
         for (int i = 0; i < opcionesEdit.Count; i++)
             Console.WriteLine($"  {i + 1}. {NombreCategoria(opcionesEdit[i])}");
-        Console.Write("Opción: ");
-        string inputCat = Console.ReadLine();
-        if (!string.IsNullOrWhiteSpace(inputCat))
+        string inputCat;
+        while (true)
         {
+            Console.Write("Opción: ");
+            inputCat = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(inputCat)) break;
             if (int.TryParse(inputCat, out int catIdx) && catIdx >= 1 && catIdx <= opcionesEdit.Count)
+            {
                 post.Categoria = opcionesEdit[catIdx - 1];
-            else
-                Console.WriteLine("Categoría inválida, no se modificó.");
+                break;
+            }
+            Console.WriteLine("Opción inválida, ingresela nuevamente (o Enter para no cambiar).");
         }
 
         Console.WriteLine($"Contenido actual: {post.Contenido}");
@@ -271,22 +276,7 @@ class Program
 
         Console.WriteLine("-- PUBLICAR POST --\n");
         MostrarLista(publicables);
-        Console.Write("Ingrese ID del post a publicar: ");
-
-        if (!int.TryParse(Console.ReadLine(), out int id))
-        {
-            Console.WriteLine("ID inválido.");
-            Pausar();
-            return;
-        }
-
-        Post post = publicables.FirstOrDefault(p => p.Id == id);
-        if (post == null)
-        {
-            Console.WriteLine("Post no encontrado.");
-            Pausar();
-            return;
-        }
+        Post post = SeleccionarPost(publicables);
 
         post.Publicar();
         Console.WriteLine($"\nPost #{post.Id} publicado el {post.FechaPublicacion:dd/MM/yyyy HH:mm}.");
@@ -307,22 +297,7 @@ class Program
 
         Console.WriteLine("-- ARCHIVAR POST --\n");
         MostrarLista(archivables);
-        Console.Write("Ingrese ID del post a archivar: ");
-
-        if (!int.TryParse(Console.ReadLine(), out int id))
-        {
-            Console.WriteLine("ID inválido.");
-            Pausar();
-            return;
-        }
-
-        Post post = archivables.FirstOrDefault(p => p.Id == id);
-        if (post == null)
-        {
-            Console.WriteLine("Post no encontrado.");
-            Pausar();
-            return;
-        }
+        Post post = SeleccionarPost(archivables);
 
         post.Archivar();
         Console.WriteLine($"\nPost #{post.Id} archivado.");
@@ -343,22 +318,7 @@ class Program
 
         Console.WriteLine("-- ELIMINAR POST --\n");
         MostrarLista(eliminables);
-        Console.Write("Ingrese ID del post a eliminar: ");
-
-        if (!int.TryParse(Console.ReadLine(), out int id))
-        {
-            Console.WriteLine("ID inválido.");
-            Pausar();
-            return;
-        }
-
-        Post post = eliminables.FirstOrDefault(p => p.Id == id);
-        if (post == null)
-        {
-            Console.WriteLine("Post no encontrado.");
-            Pausar();
-            return;
-        }
+        Post post = SeleccionarPost(eliminables);
 
         Console.Write("\n¿Confirmar eliminación? Esta acción es irreversible. (s/n): ");
         if (Console.ReadLine().Trim().ToLower() == "s")
